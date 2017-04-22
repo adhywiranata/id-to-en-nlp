@@ -1,42 +1,61 @@
-require('dotenv').config()
-var express = require('express');
-var bodyParser = require('body-parser');
-var axios = require('axios');
-
-var nlp = require('compromise');
-var app = express();
+require('dotenv').config();
+const app = require('express')();
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const nlp = require('compromise');
 
 const banned = ['dan', 'atau', 'serta'];
+const { FRENGLY_EMAIL, FRENGLY_PASS } = process.env;
 
-app.use(bodyParser.json()); // for parsing application/json
-app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/', function (req, res) {
-  res.send('Hello World!')
+app.get('/', (req, res) => {
+  res.send(`
+  <div style="
+    font-family: Arial;
+    display: flex;
+    flex: 1;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center"
+  >
+    <h1 style="font-size: 3em">
+      ID to EN NLP
+    </h1>
+    <h3>
+      sentence to nouns
+    </h3>
+    <span>
+      Please find the docs here:
+      <a href="https://github.com/adhywiranata/id-to-en-nlp">id to en npl</a>
+    </span>
+  </div>
+  `);
 });
 
-app.post('/talk', function (req, res) {
+app.post('/talk', ({ body }, res) => {
   axios.post('http://frengly.com/frengly/data/translateREST', {
-	"src": "id",
-	"dest": "en",
-	"text": req.body.message,
-	"email": process.env.FRENGLY_EMAIL,
-	"password": process.env.FRENGLY_PASS
-})
-  .then(function (response) {
-    const nouns = nlp(response.data.translation)
+    src: 'id',
+    dest: 'en',
+    text: body.message,
+    email: FRENGLY_EMAIL,
+    password: FRENGLY_PASS,
+  })
+  .then(({ data }) => {
+    const nouns = nlp(data.translation)
                     .nouns()
                     .data()
                     .map(noun => noun.singular)
-                    .filter(noun => !banned.includes(noun))
+                    .filter(noun => !banned.includes(noun));
     res.send(nouns);
   })
-  .catch(function (error) {
-    console.log(error);
+  .catch((error) => {
+    res.send({ error });
   });
 });
 
-console.log(process.env.FRENGLY_EMAIL);
-app.listen(3000, function () {
-  console.log('App listening on port 3000!')
-})
+app.listen(3000, () => {
+  console.log('App listening on port 3000!');
+});
